@@ -230,10 +230,14 @@ def editRestaurant(restaurant_id):
 
 @app.route('/restaurant/<int:restaurant_id>/delete', methods = ['GET','POST'])
 def deleteRestaurant(restaurant_id):
+	deleterestaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
 	if 'username' not in login_session:
 		return redirect('/login')
+		
+	if deleterestaurant.user_id != login_session['user_id']:
+		return "<script>function myFunction() {alert('You can only delete your own restaurants ');}</script><body onload='myFunction()''>"
+		
 	if request.method =='POST':
-		deleterestaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
 		session.delete(deleterestaurant)
 		session.commit()
 		flash('Restaurant sucessfully deleted')
