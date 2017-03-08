@@ -231,8 +231,6 @@ def showRestaurants():
 @app.route('/restaurant/new', methods=['GET', 'POST'])
 @login_required
 def newRestaurant():
-    if 'username' not in login_session:
-        return redirect('/login')
     if request.method == 'POST':
         newrestaurant = Restaurant(
             name=request.form['name'],
@@ -246,35 +244,35 @@ def newRestaurant():
 
 
 @app.route('/restaurant/<int:restaurant_id>/edit', methods=['GET', 'POST'])
+@login_required
 def editRestaurant(restaurant_id):
-    if 'username' not in login_session:
-        return redirect('/login')
         editedrestaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-    if request.method == 'POST':
-        if request.form['name']:
-            editedrestaurant.name = request.form['name']
-            session.add(editedrestaurant)
-            session.commit
-            flash('Restaurant sucessfully edited')
+        if editedrestaurant.user_id != login_session['user_id']:
+            flash('You cannot edit %s'%editedrestaurant.name)
             return redirect(url_for('showRestaurants'))
-    else:
-        restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-        return render_template(
-            'editRestaurant.html',
-            restaurant_id=restaurant_id,
-            restaurant=restaurant)
+        if request.method == 'POST':
+            if request.form['name']:
+                editedrestaurant.name = request.form['name']
+                session.add(editedrestaurant)
+                session.commit
+                flash('Restaurant sucessfully edited')
+                return redirect(url_for('showRestaurants'))
+            else:
+                restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+                return render_template(
+                    'editRestaurant.html',
+                    restaurant_id=restaurant_id,
+                    restaurant=restaurant)
 
 
 @app.route('/restaurant/<int:restaurant_id>/delete', methods=['GET', 'POST'])
+@login_required
 def deleteRestaurant(restaurant_id):
     deleterestaurant = session.query(
         Restaurant).filter_by(id=restaurant_id).one()
-    if 'username' not in login_session:
-        return redirect('/login')
-
     if deleterestaurant.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You can only delete your own restaurants ')"
-        ";}</script><body onload='myFunction()''>"
+        flash('You cannot delete %s'%deleterestaurant.name)
+        return redirect(url_for('showRestaurants'))
 
     if request.method == 'POST':
         session.delete(deleterestaurant)
@@ -312,9 +310,8 @@ def showMenu(restaurant_id):
 
 
 @app.route('/restaurant/<int:restaurant_id>/menu/new', methods=['GET', 'POST'])
+@login_required
 def newMenuItem(restaurant_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     if request.method == 'POST':
         newmenuitem = MenuItem(
             name=request.form['name'],
@@ -333,14 +330,13 @@ def newMenuItem(restaurant_id):
 
 @app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/edit',
            methods=['GET', 'POST'])
+@login_required
 def editMenuItem(restaurant_id, menu_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     editmenuitem = session.query(MenuItem).filter_by(id=menu_id).one()
 
     if editmenuitem.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You can only edit your own menu! ')"
-        ";}</script><body onload='myFunction()''>"
+        flash('You cannot edit %s'%editmenuitem.name)
+        return redirect(url_for('showMenu', restaurant_id = restaurant_id))
 
     if request.method == 'POST':
         editmenuitem.name = request.form['name']
@@ -360,14 +356,14 @@ def editMenuItem(restaurant_id, menu_id):
 
 @app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete',
            methods=['GET', 'POST'])
+@login_required
 def deleteMenuItem(restaurant_id, menu_id):
-    if 'username' not in login_session:
-        return redirect('/login')
     item = session.query(MenuItem).filter_by(id=menu_id).one()
 
     if item.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You can only edit your own menu! ')"
-        ";}</script><body onload='myFunction()''>"
+        flash('You cannot delete %s'%item.name)
+        return redirect(url_for('showMenu', restaurant_id = restaurant_id))
+
 
     if request.method == 'POST':
         session.delete(item)
